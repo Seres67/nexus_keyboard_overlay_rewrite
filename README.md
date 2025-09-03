@@ -1,6 +1,6 @@
-# Nexus Template
+# Nexus Keyboard Overlay
 
-A Nexus addon template.
+A Nexus addon that adds a modular keyboard overlay to the game.
 
 ## License
 

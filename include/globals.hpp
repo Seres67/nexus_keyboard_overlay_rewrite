@@ -2,6 +2,7 @@
 #define GLOBALS_HPP
 
 #include <nexus/Nexus.h>
+#include <string>
 
 // handle to self hmodule
 extern HMODULE self_module;
@@ -14,4 +15,11 @@ extern char addon_name[];
 
 extern HWND game_handle;
 
+extern UINT pressed_vk;
+extern std::string pressed_key;
+
+extern bool adding_key;
+extern bool recording_keypress;
+extern UINT virtual_key_to_add;
+extern UINT scan_code_to_add;
 #endif // GLOBALS_HPP
