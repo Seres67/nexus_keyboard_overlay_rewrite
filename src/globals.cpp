@@ -6,6 +6,9 @@ AddonAPI *api = nullptr;
 char addon_name[] = "Keyboard Overlay";
 HWND game_handle = nullptr;
 
+Mumble::Data *mumble_link;
+NexusLinkData *nexus_link;
+
 UINT pressed_vk;
 std::string pressed_key;
 

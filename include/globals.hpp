@@ -1,6 +1,7 @@
 #ifndef GLOBALS_HPP
 #define GLOBALS_HPP
 
+#include <mumble/Mumble.h>
 #include <nexus/Nexus.h>
 #include <string>
 
@@ -14,6 +15,9 @@ extern AddonAPI *api;
 extern char addon_name[];
 
 extern HWND game_handle;
+
+extern Mumble::Data *mumble_link;
+extern NexusLinkData *nexus_link;
 
 extern UINT pressed_vk;
 extern std::string pressed_key;

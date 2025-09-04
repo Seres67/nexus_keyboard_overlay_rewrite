@@ -18,9 +18,12 @@ void from_json(const nlohmann::json &j, UIKey &key)
     const float a = j.at("a").get<float>();
     const float colors[4] = {r, g, b, a};
     key.set_colors(colors);
-    const UINT x = j.at("x").get<UINT>();
-    const UINT y = j.at("y").get<UINT>();
+    const int x = j.at("x").get<int>();
+    const int y = j.at("y").get<int>();
     key.set_position({x, y});
+    const int width = j.at("width").get<int>();
+    const int height = j.at("height").get<int>();
+    key.set_size({width, height});
 }
 
 void to_json(nlohmann::json &j, const UIKey &key)
@@ -34,6 +37,8 @@ void to_json(nlohmann::json &j, const UIKey &key)
         {"a", key.colors()[3]},
         {"x", key.position().x},
         {"y", key.position().y},
+        {"width", key.size().x},
+        {"height", key.size().y},
     };
 }
 
@@ -45,6 +50,9 @@ std::filesystem::path settings_path;
 
 std::unordered_map<unsigned int, UIKey> keys;
 float background_color[4] = {0.075, 0.086, 0.11, 0.933};
+int default_key_size = 42;
+bool disable_while_in_chat = true;
+bool disable_when_map_open = false;
 void load()
 {
     json_settings = json::object();
@@ -68,6 +76,12 @@ void load()
         json_settings["Keys"].get_to(keys);
     if (!json_settings["BackgroundColor"].is_null())
         json_settings["BackgroundColor"].get_to(background_color);
+    if (!json_settings["DefaultKeySize"].is_null())
+        json_settings["DefaultKeySize"].get_to(default_key_size);
+    if (!json_settings["DisableWhileInChat"].is_null())
+        json_settings["DisableWhileInChat"].get_to(disable_while_in_chat);
+    if (!json_settings["DisableWhenMapOpen"].is_null())
+        json_settings["DisableWhenMapOpen"].get_to(disable_when_map_open);
     api->Log(ELogLevel_INFO, addon_name, "settings loaded!");
 }
 

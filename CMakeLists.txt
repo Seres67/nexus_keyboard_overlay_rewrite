@@ -31,7 +31,7 @@ include_directories(include)
 # load imgui as a cmake project
 add_subdirectory(src/imgui)
 
-add_library(nexus_keyboard_overlay SHARED src/main.cpp src/globals.cpp src/gui.cpp src/settings.cpp src/utils.cpp)
+add_library(nexus_keyboard_overlay SHARED src/main.cpp src/globals.cpp src/gui.cpp src/settings.cpp src/utils.cpp include/UiKey.hpp)
 target_link_libraries(nexus_keyboard_overlay PRIVATE imgui)
 set_property(TARGET nexus_keyboard_overlay PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
