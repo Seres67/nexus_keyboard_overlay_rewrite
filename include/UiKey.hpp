@@ -5,23 +5,33 @@
 
 namespace Settings
 {
-extern int default_key_size;
+extern float default_key_size;
 }
-
-struct Vec2
-{
-    int x;
-    int y;
-};
 
 class UIKey
 {
   public:
     UIKey() = default;
-    explicit UIKey(const UINT virtual_code, const UINT scan_code, const float colors[4])
-        : m_vk(virtual_code), m_scan_code(scan_code), m_pos({0, 0}),
-          m_size({Settings::default_key_size, Settings::default_key_size}), m_pressed(false)
+    UIKey(const UINT virtual_code, const UINT scan_code, const float colors[4])
+        : m_vk(virtual_code), m_scan_code(scan_code), m_pressed(false)
     {
+        m_pos[0] = 0;
+        m_pos[1] = 0;
+        m_size[0] = Settings::default_key_size;
+        m_size[1] = Settings::default_key_size;
+        m_colors[0] = colors[0];
+        m_colors[1] = colors[1];
+        m_colors[2] = colors[2];
+        m_colors[3] = colors[3];
+    }
+
+    UIKey(const UINT virtual_code, const UINT scan_code, const float pos[2], const float size[2], const float colors[4])
+        : m_vk(virtual_code), m_scan_code(scan_code), m_pressed(false)
+    {
+        m_pos[0] = pos[0];
+        m_pos[1] = pos[1];
+        m_size[0] = size[0];
+        m_size[1] = size[1];
         m_colors[0] = colors[0];
         m_colors[1] = colors[1];
         m_colors[2] = colors[2];
@@ -33,11 +43,21 @@ class UIKey
     [[nodiscard]] UINT scan_code() const { return m_scan_code; }
     void set_scan_code(const UINT scan_code) { m_scan_code = scan_code; }
 
-    [[nodiscard]] Vec2 position() const { return m_pos; }
-    void set_position(const Vec2 &pos) { m_pos = pos; }
+    [[nodiscard]] const float *position() const { return m_pos; }
+    [[nodiscard]] float *position() { return m_pos; }
+    void set_position(const float pos[2])
+    {
+        m_pos[0] = pos[0];
+        m_pos[1] = pos[1];
+    }
 
-    [[nodiscard]] Vec2 size() const { return m_size; }
-    void set_size(const Vec2 &size) { m_size = size; }
+    [[nodiscard]] const float *size() const { return m_size; }
+    [[nodiscard]] float *size() { return m_size; }
+    void set_size(const float size[2])
+    {
+        m_size[0] = size[0];
+        m_size[1] = size[1];
+    }
 
     [[nodiscard]] float *colors() { return m_colors; }
     [[nodiscard]] const float *colors() const { return m_colors; }
@@ -53,10 +73,10 @@ class UIKey
     void set_pressed(const bool pressed) { m_pressed = pressed; }
 
   private:
-    UINT m_vk;
+    UINT m_vk{};
     UINT m_scan_code;
-    Vec2 m_pos;
-    Vec2 m_size;
+    float m_pos[2];
+    float m_size[2];
     float m_colors[4];
     bool m_pressed;
 };

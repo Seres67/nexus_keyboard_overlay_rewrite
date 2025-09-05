@@ -19,9 +19,11 @@ extern std::mutex mutex;
 
 extern std::unordered_map<unsigned int, UIKey> keys;
 extern float background_color[4];
-extern int default_key_size;
+extern float default_key_size;
 extern bool disable_while_in_chat;
 extern bool disable_when_map_open;
+extern bool edit_mode;
+extern bool lock_window;
 } // namespace Settings
 
 #endif // SETTINGS_HPP

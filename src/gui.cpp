@@ -12,24 +12,40 @@ void render_window()
         return;
 
     ImGui::SetNextWindowPos(ImVec2(300, 400), ImGuiCond_FirstUseEver);
-    constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration;
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing |
+                                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollbar;
+    if (Settings::lock_window)
+        window_flags |= ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+
     ImGui::PushStyleColor(ImGuiCol_WindowBg, {Settings::background_color[0], Settings::background_color[1],
                                               Settings::background_color[2], Settings::background_color[3]});
-    if (ImGui::Begin("Keyboard Overlay##KeyboardOverlayMainWindow", &tmp_open, flags)) {
+    if (ImGui::Begin("Keyboard Overlay##KeyboardOverlayMainWindow", &tmp_open, window_flags)) {
+#ifndef NDEBUG
         ImGui::Text("%u, %s", pressed_vk, pressed_key.c_str());
+#endif
         for (auto &val : Settings::keys | std::views::values) {
+            ImGui::SetCursorPos({val.position()[0], val.position()[1]});
             if (val.pressed()) {
                 ImGui::PushStyleColor(ImGuiCol_Button,
                                       {val.colors()[0], val.colors()[1], val.colors()[2], val.colors()[3]});
-                // ImGui::TextColored(ImVec4(val.colors()[0], val.colors()[1], val.colors()[2], val.colors()[3]),
-                // "%u: pressed", val.virtual_code());
                 ImGui::Button(key_to_string(val.virtual_code(), val.scan_code()).c_str(),
-                              {static_cast<float>(val.size().x), static_cast<float>(val.size().y)});
+                              {(val.size()[0]), (val.size()[1])});
                 ImGui::PopStyleColor();
             } else {
+                ImGui::PushStyleColor(ImGuiCol_Button,
+                                      {0.247, 0.302, 0.396, 0.933}); // TODO: make it a setting, maybe even per-key
                 ImGui::Button(key_to_string(val.virtual_code(), val.scan_code()).c_str(),
-                              {static_cast<float>(val.size().x), static_cast<float>(val.size().y)});
-                // ImGui::Text("%u: released", val.virtual_code());
+                              {(val.size()[0]), (val.size()[1])});
+                ImGui::PopStyleColor();
+            }
+            if (Settings::edit_mode && ImGui::IsItemActive()) {
+                const float pos[2] = {val.position()[0] + ImGui::GetIO().MouseDelta.x,
+                                      val.position()[1] + ImGui::GetIO().MouseDelta.y};
+                val.set_position(pos);
+            }
+            if (Settings::edit_mode && ImGui::IsItemDeactivated()) {
+                Settings::json_settings["Keys"] = Settings::keys;
+                Settings::save();
             }
         }
         ImGui::End();
@@ -99,10 +115,12 @@ void render_options()
         Settings::json_settings["BackgroundColor"] = Settings::background_color;
         Settings::save();
     }
-    if (ImGui::InputInt("Default Key Size", &Settings::default_key_size)) {
+    ImGui::PushItemWidth(400);
+    if (ImGui::SliderFloat("Default Key Size", &Settings::default_key_size, 1.f, 1000.f)) {
         Settings::json_settings["DefaultKeySize"] = Settings::default_key_size;
         Settings::save();
     }
+    ImGui::PopItemWidth();
     if (ImGui::Checkbox("Disable while typing in chat", &Settings::disable_while_in_chat)) {
         Settings::json_settings["DisableWhileInChat"] = Settings::disable_while_in_chat;
         Settings::save();
@@ -111,32 +129,73 @@ void render_options()
         Settings::json_settings["DisableWhenMapOpen"] = Settings::disable_when_map_open;
         Settings::save();
     }
+    if (ImGui::Checkbox("Edit Mode", &Settings::edit_mode)) {
+        Settings::json_settings["EditMode"] = Settings::edit_mode;
+        Settings::save();
+    }
+    if (ImGui::Checkbox("Lock Window", &Settings::lock_window)) {
+        Settings::json_settings["LockWindow"] = Settings::lock_window;
+        Settings::save();
+    }
     if (ImGui::CollapsingHeader("Keys##KeyboardOverlayKeysHeader")) {
-        for (auto key = Settings::keys.begin(); key != Settings::keys.end();) {
-            std::string key_str = key_to_string(key->second.virtual_code(), key->second.scan_code());
-            if (key->second.pressed()) {
-                ImGui::TextColored(ImVec4(key->second.colors()[0], key->second.colors()[1], key->second.colors()[2],
-                                          key->second.colors()[3]),
-                                   "%s", key_str.c_str());
-            } else {
-                ImGui::Text("%s", key_str.c_str());
-            }
-            ImGui::SameLine();
-            if (ImGui::ColorEdit4(
-                    ("Key color##KeyboardOverlayKeyColor" + std::to_string(key->second.virtual_code())).c_str(),
-                    key->second.colors(), ImGuiColorEditFlags_NoInputs)) {
-                Settings::json_settings["Keys"] = Settings::keys;
-                Settings::save();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button(
-                    ("Delete##KeyboardOverlayDeleteKey" + std::to_string(key->second.virtual_code())).c_str())) {
-                key = Settings::keys.erase(key);
-                Settings::json_settings["Keys"] = Settings::keys;
-                Settings::save();
-            } else {
+        if (ImGui::BeginTable("KeysTable##KeyboardOverlayKeysTable", 5,
+                              ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+            ImGui::TableSetupColumn("Key", ImGuiTableColumnFlags_WidthFixed, 80.f);
+            ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Position", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Color", ImGuiTableColumnFlags_WidthFixed, 50.f);
+            ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 50.f);
+            ImGui::TableHeadersRow();
+
+            for (auto key = Settings::keys.begin(); key != Settings::keys.end();) {
+                UIKey &k = key->second;
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                std::string key_str = key_to_string(k.virtual_code(), k.scan_code());
+                if (k.pressed()) {
+                    ImGui::TextColored(ImVec4(k.colors()[0], k.colors()[1], k.colors()[2], k.colors()[3]), "%s",
+                                       key_str.c_str());
+                } else {
+                    ImGui::Text("%s", key_str.c_str());
+                }
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::PushItemWidth(-1);
+                if (ImGui::SliderFloat2(("##Size" + std::to_string(k.virtual_code())).c_str(), k.size(), 1.0f,
+                                        1000.0f)) {
+                    Settings::json_settings["Keys"] = Settings::keys;
+                    Settings::save();
+                }
+                ImGui::PopItemWidth();
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::PushItemWidth(-1);
+                if (ImGui::SliderFloat2(("##Position" + std::to_string(k.virtual_code())).c_str(), k.position(), 0.0f,
+                                        5000.0f)) {
+                    Settings::json_settings["Keys"] = Settings::keys;
+                    Settings::save();
+                }
+                ImGui::PopItemWidth();
+
+                ImGui::TableSetColumnIndex(3);
+                if (ImGui::ColorEdit4(("##Color" + std::to_string(k.virtual_code())).c_str(), k.colors(),
+                                      ImGuiColorEditFlags_NoInputs)) {
+                    Settings::json_settings["Keys"] = Settings::keys;
+                    Settings::save();
+                }
+
+                ImGui::TableSetColumnIndex(4);
+                if (ImGui::Button(("Delete##" + std::to_string(k.virtual_code())).c_str())) {
+                    key = Settings::keys.erase(key);
+                    Settings::json_settings["Keys"] = Settings::keys;
+                    Settings::save();
+                    continue;
+                }
+
                 ++key;
             }
+            ImGui::EndTable();
         }
     }
 }

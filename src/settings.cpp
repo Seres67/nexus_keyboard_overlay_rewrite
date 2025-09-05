@@ -18,12 +18,14 @@ void from_json(const nlohmann::json &j, UIKey &key)
     const float a = j.at("a").get<float>();
     const float colors[4] = {r, g, b, a};
     key.set_colors(colors);
-    const int x = j.at("x").get<int>();
-    const int y = j.at("y").get<int>();
-    key.set_position({x, y});
-    const int width = j.at("width").get<int>();
-    const int height = j.at("height").get<int>();
-    key.set_size({width, height});
+    const float x = j.at("x").get<float>();
+    const float y = j.at("y").get<float>();
+    const float pos[2] = {x, y};
+    key.set_position(pos);
+    const float width = j.at("width").get<float>();
+    const float height = j.at("height").get<float>();
+    const float size[2] = {width, height};
+    key.set_size(size);
 }
 
 void to_json(nlohmann::json &j, const UIKey &key)
@@ -35,10 +37,10 @@ void to_json(nlohmann::json &j, const UIKey &key)
         {"g", key.colors()[1]},
         {"b", key.colors()[2]},
         {"a", key.colors()[3]},
-        {"x", key.position().x},
-        {"y", key.position().y},
-        {"width", key.size().x},
-        {"height", key.size().y},
+        {"x", key.position()[0]},
+        {"y", key.position()[1]},
+        {"width", key.size()[0]},
+        {"height", key.size()[1]},
     };
 }
 
@@ -50,9 +52,11 @@ std::filesystem::path settings_path;
 
 std::unordered_map<unsigned int, UIKey> keys;
 float background_color[4] = {0.075, 0.086, 0.11, 0.933};
-int default_key_size = 42;
+float default_key_size = 42;
 bool disable_while_in_chat = true;
 bool disable_when_map_open = false;
+bool edit_mode = false;
+bool lock_window = false;
 void load()
 {
     json_settings = json::object();
@@ -82,6 +86,9 @@ void load()
         json_settings["DisableWhileInChat"].get_to(disable_while_in_chat);
     if (!json_settings["DisableWhenMapOpen"].is_null())
         json_settings["DisableWhenMapOpen"].get_to(disable_when_map_open);
+    if (!json_settings["LockWindow"].is_null()) {
+        json_settings["LockWindow"].get_to(lock_window);
+    }
     api->Log(ELogLevel_INFO, addon_name, "settings loaded!");
 }
 

@@ -66,6 +66,7 @@ void addon_load(AddonAPI *api_p)
 
     Settings::settings_path = api->Paths.GetAddonDirectory("keyboard_overlay\\settings.json");
     Settings::load();
+
     // TODO: convert existing keys in `AllKeybindings` to UIKeys in `keys`
     api->Log(ELogLevel_INFO, addon_name, "addon loaded!");
 }
@@ -140,7 +141,9 @@ UINT wnd_proc(HWND__ *h_wnd, const UINT u_msg, const WPARAM w_param, const LPARA
         const std::string key = key_to_string(virtual_key, scan_code);
         pressed_vk = virtual_key;
         pressed_key = key;
-        api->Log(ELogLevel_DEBUG, addon_name, key.c_str());
+#ifndef NDEBUG
+        api->Log(ELogLevel_DEBUG, addon_name, (key + " " + std::to_string(virtual_key)).c_str());
+#endif
     }
     if (u_msg == WM_KEYUP || u_msg == WM_SYSKEYUP) {
         const UINT virtual_key = static_cast<UINT>(w_param);
