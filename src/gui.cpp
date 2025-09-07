@@ -5,7 +5,30 @@
 #include <imgui/imgui_internal.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 #include <settings.hpp>
+#include <tchar.h>
 #include <utils.hpp>
+
+void render_key(const UIKey &val)
+{
+    const auto &texture_id = val.pressed() ? val.pressed_texture_identifier() : val.released_texture_identifier();
+    const auto *colors = val.pressed() ? val.pressed_colors() : val.released_colors();
+
+    if (!texture_id.empty()) {
+        const Texture *texture = api->Textures.Get(texture_id.c_str());
+        if (!texture) {
+            api->Textures.GetOrCreateFromFile(texture_id.c_str(),
+                                              (textures_directory / texture_id.substr(17)).string().c_str());
+        } else {
+            ImGui::ImageButton(texture->Resource, {val.size()[0], val.size()[1]}, {0, 0}, {1, 1}, 0);
+        }
+    } else {
+        ImGui::PushStyleColor(ImGuiCol_Button, {colors[0], colors[1], colors[2], colors[3]});
+        ImGui::Button(val.display_text().empty() ? key_to_string(val.virtual_code(), val.scan_code()).c_str()
+                                                 : val.display_text().c_str(),
+                      {val.size()[0], val.size()[1]});
+        ImGui::PopStyleColor();
+    }
+}
 
 bool tmp_open = true;
 void render_window()
@@ -27,45 +50,7 @@ void render_window()
 #endif
         for (auto &val : Settings::keys | std::views::values) {
             ImGui::SetCursorPos({val.position()[0], val.position()[1]});
-            if (val.pressed()) {
-                if (!val.pressed_texture_identifier().empty()) {
-                    if (!api->Textures.Get(val.pressed_texture_identifier().c_str())) {
-                        api->Textures.GetOrCreateFromFile(
-                            val.pressed_texture_identifier().c_str(),
-                            (textures_directory / val.pressed_texture_identifier().substr(17)).string().c_str());
-                    } else {
-                        ImGui::ImageButton(api->Textures.Get(val.pressed_texture_identifier().c_str())->Resource,
-                                           {val.size()[0], val.size()[1]}, {0, 0}, {1, 1}, 0);
-                    }
-                } else {
-                    ImGui::PushStyleColor(ImGuiCol_Button, {val.pressed_colors()[0], val.pressed_colors()[1],
-                                                            val.pressed_colors()[2], val.pressed_colors()[3]});
-                    ImGui::Button(val.display_text().empty()
-                                      ? key_to_string(val.virtual_code(), val.scan_code()).c_str()
-                                      : val.display_text().c_str(),
-                                  {val.size()[0], val.size()[1]});
-                    ImGui::PopStyleColor();
-                }
-            } else {
-                if (!val.released_texture_identifier().empty()) {
-                    if (!api->Textures.Get(val.released_texture_identifier().c_str())) {
-                        api->Textures.GetOrCreateFromFile(
-                            val.released_texture_identifier().c_str(),
-                            (textures_directory / val.released_texture_identifier().substr(17)).string().c_str());
-                    } else {
-                        ImGui::ImageButton(api->Textures.Get(val.released_texture_identifier().c_str())->Resource,
-                                           {val.size()[0], val.size()[1]}, {0, 0}, {1, 1}, 0);
-                    }
-                } else {
-                    ImGui::PushStyleColor(ImGuiCol_Button, {val.released_colors()[0], val.released_colors()[1],
-                                                            val.released_colors()[2], val.released_colors()[3]});
-                    ImGui::Button(val.display_text().empty()
-                                      ? key_to_string(val.virtual_code(), val.scan_code()).c_str()
-                                      : val.display_text().c_str(),
-                                  {val.size()[0], val.size()[1]});
-                    ImGui::PopStyleColor();
-                }
-            }
+            render_key(val);
             if (Settings::edit_mode && ImGui::IsItemActive()) {
                 const float pos[2] = {val.position()[0] + ImGui::GetIO().MouseDelta.x,
                                       val.position()[1] + ImGui::GetIO().MouseDelta.y};
@@ -87,7 +72,7 @@ void handle_texture(std::filesystem::path &texture_path)
     TCHAR szFile[MAX_PATH]{};
     TCHAR initialDir[MAX_PATH]{};
 
-    strcpy_s(initialDir, textures_directory.string().c_str());
+    _tcscpy_s(initialDir, textures_directory.string().c_str());
 
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = static_cast<HWND>(nullptr);
