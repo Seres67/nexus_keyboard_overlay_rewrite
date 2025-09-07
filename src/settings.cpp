@@ -76,6 +76,51 @@ void to_json(nlohmann::json &j, const UIKey &key)
     }
 }
 
+void from_json(const nlohmann::json &j, OldKey &key)
+{
+    key.m_code = j.at("m_code").get<UINT>();
+    const float x = j.at("m_pos.x").get<float>();
+    const float y = j.at("m_pos.y").get<float>();
+    key.m_pos = {x, y};
+    const float width = j.at("m_size.x").get<float>();
+    const float height = j.at("m_size.y").get<float>();
+    key.m_size = {width, height};
+    const std::string display_text = j.at("m_binding_name").get<std::string>();
+    key.m_binding_name = display_text;
+    const std::string key_name = j.at("m_key_name").get<std::string>();
+    key.m_key_name = key_name;
+}
+
+void to_json(nlohmann::json &j, const OldKey &key)
+{
+
+    // j = json{
+    //     {"virtual_code", key.virtual_code()},
+    //     {"scan_code", key.scan_code()},
+    //     {"x", key.position()[0]},
+    //     {"y", key.position()[1]},
+    //     {"width", key.size()[0]},
+    //     {"height", key.size()[1]},
+    //     {"display_text", key.display_text()},
+    // };
+    // if (!key.released_texture_identifier().empty()) {
+    //     j += {"released_texture", key.released_texture_identifier().substr(17)};
+    // } else {
+    //     j += {"released_red", key.released_colors()[0]};
+    //     j += {"released_green", key.released_colors()[1]};
+    //     j += {"released_blue", key.released_colors()[2]};
+    //     j += {"released_alpha", key.released_colors()[3]};
+    // }
+    // if (!key.pressed_texture_identifier().empty()) {
+    //     j += {"pressed_texture", key.pressed_texture_identifier().substr(17)};
+    // } else {
+    //     j += {"pressed_red", key.pressed_colors()[0]};
+    //     j += {"pressed_green", key.pressed_colors()[1]};
+    //     j += {"pressed_blue", key.pressed_colors()[2]};
+    //     j += {"pressed_alpha", key.pressed_colors()[3]};
+    // }
+}
+
 namespace Settings
 {
 json json_settings;

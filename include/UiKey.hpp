@@ -2,6 +2,7 @@
 #define NEXUS_KEYBOARD_OVERLAY_UIKEY_HPP
 
 #include <filesystem>
+#include <imgui/imgui.h>
 #include <nexus/Nexus.h>
 #include <string>
 #include <utility>
@@ -18,7 +19,7 @@ class UIKey
     UIKey() = default;
     UIKey(const UINT virtual_code, const UINT scan_code, const float released_colors[4], const float pressed_colors[4],
           std::string released_texture_identifier, std::string pressed_texture_identifier, std::string display_text)
-        : m_vk(virtual_code), m_scan_code(scan_code),
+        : m_virtual_key(virtual_code), m_scan_code(scan_code),
           m_released_texture_identifier(std::move(released_texture_identifier)),
           m_pressed_texture_identifier(std::move(pressed_texture_identifier)), m_display_text(std::move(display_text)),
           m_pressed(false)
@@ -40,7 +41,7 @@ class UIKey
     UIKey(const UINT virtual_code, const UINT scan_code, const float pos[2], const float size[2],
           const float released_colors[4], const float pressed_colors[4], std::string released_texture_identifier,
           std::string pressed_texture_identifier, std::string display_text)
-        : m_vk(virtual_code), m_scan_code(scan_code),
+        : m_virtual_key(virtual_code), m_scan_code(scan_code),
           m_released_texture_identifier(std::move(released_texture_identifier)),
           m_pressed_texture_identifier(std::move(pressed_texture_identifier)), m_display_text(std::move(display_text)),
           m_pressed(false)
@@ -58,8 +59,8 @@ class UIKey
         m_pressed_colors[2] = pressed_colors[2];
         m_pressed_colors[3] = pressed_colors[3];
     }
-    [[nodiscard]] UINT virtual_code() const { return m_vk; }
-    void set_virtual_code(const UINT vk) { m_vk = vk; }
+    [[nodiscard]] UINT virtual_code() const { return m_virtual_key; }
+    void set_virtual_code(const UINT vk) { m_virtual_key = vk; }
 
     [[nodiscard]] UINT scan_code() const { return m_scan_code; }
     void set_scan_code(const UINT scan_code) { m_scan_code = scan_code; }
@@ -143,7 +144,7 @@ class UIKey
     }
 
   private:
-    UINT m_vk{};
+    UINT m_virtual_key{};
     UINT m_scan_code;
     float m_pos[2];
     float m_size[2];
@@ -155,6 +156,18 @@ class UIKey
     bool m_pressed;
     std::chrono::steady_clock::time_point m_start_press_time;
     std::chrono::steady_clock::time_point m_end_press_time;
+};
+
+struct OldKey
+{
+    std::string m_binding_name;
+    std::string m_key_name;
+    unsigned int m_code{};
+    bool m_pressed = false;
+    ImVec2 m_pos;
+    ImVec2 m_size;
+    std::chrono::time_point<std::chrono::steady_clock> m_start_pressing = {};
+    std::chrono::time_point<std::chrono::steady_clock> m_end_pressing = {};
 };
 
 #endif // NEXUS_KEYBOARD_OVERLAY_UIKEY_HPP

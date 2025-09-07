@@ -67,11 +67,71 @@ void addon_load(AddonAPI *api_p)
     textures_directory = api->Paths.GetAddonDirectory("keyboard_overlay\\textures");
     if (!std::filesystem::exists(textures_directory))
         std::filesystem::create_directory(textures_directory);
-    //TODO: change filename to default
+    // TODO: change filename to default
     Settings::settings_path = api->Paths.GetAddonDirectory("keyboard_overlay\\settings.json");
     Settings::load();
 
-    // TODO: convert existing keys in `AllKeybindings` to UIKeys in `keys`
+    if (Settings::json_settings.contains("AllKeybindings") && !Settings::json_settings["AllKeybindings"].is_null()) {
+        const auto old_keys = Settings::json_settings["AllKeybindings"].get<std::map<unsigned int, OldKey>>();
+        for (const auto &[vk, val] : old_keys) {
+            constexpr float released_key_colors[4] = {0.247, 0.302, 0.396, 0.933};
+            constexpr float pressed_key_colors[4] = {1, 1, 1, 0.933};
+            Settings::keys[vk] =
+                UIKey(vk, val.m_code, released_key_colors, pressed_key_colors, "", "", val.m_binding_name);
+            const float pos[2] = {val.m_pos[0], val.m_pos[1]};
+            Settings::keys[vk].set_position(pos);
+            const float size[2] = {val.m_size[0], val.m_size[1]};
+            Settings::keys[vk].set_size(size);
+        }
+        Settings::json_settings.erase("AllKeybindings");
+        Settings::json_settings["Keys"] = Settings::keys;
+        Settings::save();
+    }
+    if (Settings::json_settings.contains("ShowKeyTimers")) {
+        bool show_key_timers;
+        if (Settings::json_settings["ShowKeyTimers"].is_null())
+            show_key_timers = Settings::show_durations;
+        else
+            show_key_timers = Settings::json_settings["ShowKeyTimers"].get<bool>();
+        Settings::show_durations = show_key_timers;
+        Settings::json_settings["ShowDurations"] = show_key_timers;
+        Settings::json_settings.erase("ShowKeyTimers");
+        Settings::save();
+    }
+    if (Settings::json_settings.contains("KeySize")) {
+        float key_size;
+        if (Settings::json_settings["KeySize"].is_null())
+            key_size = Settings::default_key_size;
+        else
+            key_size = Settings::json_settings["KeySize"].get<float>();
+        Settings::json_settings["DefaultKeySize"] = key_size;
+        Settings::default_key_size = key_size;
+        Settings::json_settings.erase("KeySize");
+        Settings::save();
+    }
+    if (Settings::json_settings.contains("DisableInChat")) {
+        bool disable_in_chat;
+        if (Settings::json_settings["DisableInChat"].is_null())
+            disable_in_chat = Settings::disable_while_in_chat;
+        else
+            disable_in_chat = Settings::json_settings["DisableInChat"].get<bool>();
+        Settings::json_settings["DisableWhileInChat"] = disable_in_chat;
+        Settings::disable_while_in_chat = disable_in_chat;
+        Settings::json_settings.erase("DisableInChat");
+        Settings::save();
+    }
+    if (Settings::json_settings.contains("AlwaysDisplayed"))
+        Settings::json_settings.erase("AlwaysDisplayed");
+    if (Settings::json_settings.contains("IsBackgroundTransparent"))
+        Settings::json_settings.erase("IsBackgroundTransparent");
+    if (Settings::json_settings.contains("IsKeyboardOverlayEnabled"))
+        Settings::json_settings.erase("IsKeyboardOverlayEnabled");
+    if (Settings::json_settings.contains("PressedKeyColor"))
+        Settings::json_settings.erase("PressedKeyColor");
+    if (Settings::json_settings.contains("WindowScale"))
+        Settings::json_settings.erase("WindowScale");
+    Settings::save();
+
     api->Log(ELogLevel_INFO, addon_name, "addon loaded!");
 }
 

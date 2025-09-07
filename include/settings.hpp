@@ -7,6 +7,8 @@
 
 void from_json(const nlohmann::json &j, UIKey &key);
 void to_json(nlohmann::json &j, const UIKey &key);
+void from_json(const nlohmann::json &j, OldKey &key);
+void to_json(nlohmann::json &j, const OldKey &key);
 namespace Settings
 {
 
