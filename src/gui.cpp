@@ -67,7 +67,9 @@ void render_window()
 {
     if (Settings::disable_when_map_open && (!nexus_link->IsGameplay || mumble_link->Context.IsMapOpen))
         return;
+#ifndef NDEBUG
     ImGui::ShowDemoWindow();
+#endif
     ImGui::SetNextWindowPos(ImVec2(300, 400), ImGuiCond_FirstUseEver);
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing |
                                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollbar;
@@ -231,8 +233,8 @@ void render_options()
         }
         ImGui::EndPopup();
     }
-    //TODO: add profile selector here
-    //  if (ImGui::Combo("combo 4 (function)", &item_current_4, &Funcs::ItemGetter, items, IM_ARRAYSIZE(items))))
+    // TODO: add profile selector here
+    //   if (ImGui::Combo("combo 4 (function)", &item_current_4, &Funcs::ItemGetter, items, IM_ARRAYSIZE(items))))
     if (ImGui::ColorEdit4("Background Color##KeyboardOverlayBackgroundColor", Settings::background_color,
                           ImGuiColorEditFlags_NoInputs)) {
         Settings::json_settings["BackgroundColor"] = Settings::background_color;
