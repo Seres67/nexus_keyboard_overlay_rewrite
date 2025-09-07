@@ -24,6 +24,7 @@ extern bool disable_while_in_chat;
 extern bool disable_when_map_open;
 extern bool edit_mode;
 extern bool lock_window;
+extern bool show_durations;
 } // namespace Settings
 
 #endif // SETTINGS_HPP

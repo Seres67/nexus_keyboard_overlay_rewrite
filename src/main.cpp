@@ -67,6 +67,7 @@ void addon_load(AddonAPI *api_p)
     textures_directory = api->Paths.GetAddonDirectory("keyboard_overlay\\textures");
     if (!std::filesystem::exists(textures_directory))
         std::filesystem::create_directory(textures_directory);
+    //TODO: change filename to default
     Settings::settings_path = api->Paths.GetAddonDirectory("keyboard_overlay\\settings.json");
     Settings::load();
 

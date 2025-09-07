@@ -89,6 +89,7 @@ bool disable_while_in_chat = true;
 bool disable_when_map_open = false;
 bool edit_mode = false;
 bool lock_window = false;
+bool show_durations = false;
 void load()
 {
     json_settings = json::object();
@@ -118,9 +119,10 @@ void load()
         json_settings["DisableWhileInChat"].get_to(disable_while_in_chat);
     if (!json_settings["DisableWhenMapOpen"].is_null())
         json_settings["DisableWhenMapOpen"].get_to(disable_when_map_open);
-    if (!json_settings["LockWindow"].is_null()) {
+    if (!json_settings["LockWindow"].is_null())
         json_settings["LockWindow"].get_to(lock_window);
-    }
+    if (!json_settings["ShowDurations"].is_null())
+        json_settings["ShowDurations"].get_to(show_durations);
     api->Log(ELogLevel_INFO, addon_name, "settings loaded!");
 }
 

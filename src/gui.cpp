@@ -8,11 +8,19 @@
 #include <tchar.h>
 #include <utils.hpp>
 
-void render_key(const UIKey &val)
+void render_duration(const UIKey &val)
+{
+    auto text_size = ImGui::CalcTextSize(std::string(std::to_string(val.press_duration().count()) + "ms").c_str());
+    ImGui::SetCursorPos({val.position()[0] + (val.size()[0] / 2) - text_size[0] / 2, val.position()[1]});
+    ImGui::Text("%lldms", val.press_duration().count());
+}
+
+void render_key(UIKey &val)
 {
     const auto &texture_id = val.pressed() ? val.pressed_texture_identifier() : val.released_texture_identifier();
     const auto *colors = val.pressed() ? val.pressed_colors() : val.released_colors();
 
+    ImGui::SetCursorPos({val.position()[0], val.position()[1]});
     if (!texture_id.empty()) {
         const Texture *texture = api->Textures.Get(texture_id.c_str());
         if (!texture) {
@@ -20,6 +28,18 @@ void render_key(const UIKey &val)
                                               (textures_directory / texture_id.substr(17)).string().c_str());
         } else {
             ImGui::ImageButton(texture->Resource, {val.size()[0], val.size()[1]}, {0, 0}, {1, 1}, 0);
+            if (Settings::edit_mode && ImGui::IsItemActive()) {
+                const float pos[2] = {val.position()[0] + ImGui::GetIO().MouseDelta.x,
+                                      val.position()[1] + ImGui::GetIO().MouseDelta.y};
+                val.set_position(pos);
+            }
+            if (Settings::edit_mode && ImGui::IsItemDeactivated()) {
+                Settings::json_settings["Keys"] = Settings::keys;
+                Settings::save();
+            }
+            if (Settings::show_durations) {
+                render_duration(val);
+            }
         }
     } else {
         ImGui::PushStyleColor(ImGuiCol_Button, {colors[0], colors[1], colors[2], colors[3]});
@@ -27,6 +47,18 @@ void render_key(const UIKey &val)
                                                  : val.display_text().c_str(),
                       {val.size()[0], val.size()[1]});
         ImGui::PopStyleColor();
+        if (Settings::edit_mode && ImGui::IsItemActive()) {
+            const float pos[2] = {val.position()[0] + ImGui::GetIO().MouseDelta.x,
+                                  val.position()[1] + ImGui::GetIO().MouseDelta.y};
+            val.set_position(pos);
+        }
+        if (Settings::edit_mode && ImGui::IsItemDeactivated()) {
+            Settings::json_settings["Keys"] = Settings::keys;
+            Settings::save();
+        }
+        if (Settings::show_durations) {
+            render_duration(val);
+        }
     }
 }
 
@@ -35,7 +67,7 @@ void render_window()
 {
     if (Settings::disable_when_map_open && (!nexus_link->IsGameplay || mumble_link->Context.IsMapOpen))
         return;
-
+    ImGui::ShowDemoWindow();
     ImGui::SetNextWindowPos(ImVec2(300, 400), ImGuiCond_FirstUseEver);
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoFocusOnAppearing |
                                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollbar;
@@ -49,17 +81,7 @@ void render_window()
         ImGui::Text("%u, %s", pressed_vk, pressed_key.c_str());
 #endif
         for (auto &val : Settings::keys | std::views::values) {
-            ImGui::SetCursorPos({val.position()[0], val.position()[1]});
             render_key(val);
-            if (Settings::edit_mode && ImGui::IsItemActive()) {
-                const float pos[2] = {val.position()[0] + ImGui::GetIO().MouseDelta.x,
-                                      val.position()[1] + ImGui::GetIO().MouseDelta.y};
-                val.set_position(pos);
-            }
-            if (Settings::edit_mode && ImGui::IsItemDeactivated()) {
-                Settings::json_settings["Keys"] = Settings::keys;
-                Settings::save();
-            }
         }
         ImGui::End();
     }
@@ -209,6 +231,8 @@ void render_options()
         }
         ImGui::EndPopup();
     }
+    //TODO: add profile selector here
+    //  if (ImGui::Combo("combo 4 (function)", &item_current_4, &Funcs::ItemGetter, items, IM_ARRAYSIZE(items))))
     if (ImGui::ColorEdit4("Background Color##KeyboardOverlayBackgroundColor", Settings::background_color,
                           ImGuiColorEditFlags_NoInputs)) {
         Settings::json_settings["BackgroundColor"] = Settings::background_color;
@@ -231,21 +255,24 @@ void render_options()
         Settings::save();
     }
     ImGui::PopItemWidth();
-    if (ImGui::Checkbox("Disable while in chat##KeyboardOverlayDefaultDisableWhileInChat",
-                        &Settings::disable_while_in_chat)) {
+    if (ImGui::Checkbox("Disable while in chat##KeyboardOverlayDisableWhileInChat", &Settings::disable_while_in_chat)) {
         Settings::json_settings["DisableWhileInChat"] = Settings::disable_while_in_chat;
         Settings::save();
     }
-    if (ImGui::Checkbox("Disable when map is open##KeyboardOverlayDefaultDisableWhenMapIsOpen",
+    if (ImGui::Checkbox("Disable when map is open##KeyboardOverlayDisableWhenMapIsOpen",
                         &Settings::disable_when_map_open)) {
         Settings::json_settings["DisableWhenMapOpen"] = Settings::disable_when_map_open;
         Settings::save();
     }
-    if (ImGui::Checkbox("Edit Mode##KeyboardOverlayDefaultEditMode", &Settings::edit_mode)) {
+    if (ImGui::Checkbox("Show key press durations##KeyboardOverlayShowDurations", &Settings::show_durations)) {
+        Settings::json_settings["ShowDurations"] = Settings::show_durations;
+        Settings::save();
+    }
+    if (ImGui::Checkbox("Edit Mode##KeyboardOverlayEditMode", &Settings::edit_mode)) {
         Settings::json_settings["EditMode"] = Settings::edit_mode;
         Settings::save();
     }
-    if (ImGui::Checkbox("Lock Window##KeyboardOverlayDefaultLockWindow", &Settings::lock_window)) {
+    if (ImGui::Checkbox("Lock Window##KeyboardOverlayLockWindow", &Settings::lock_window)) {
         Settings::json_settings["LockWindow"] = Settings::lock_window;
         Settings::save();
     }

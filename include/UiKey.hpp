@@ -1,10 +1,7 @@
 #ifndef NEXUS_KEYBOARD_OVERLAY_UIKEY_HPP
 #define NEXUS_KEYBOARD_OVERLAY_UIKEY_HPP
 
-#include "globals.hpp"
-
 #include <filesystem>
-#include <memory>
 #include <nexus/Nexus.h>
 #include <string>
 #include <utility>
@@ -12,7 +9,8 @@
 namespace Settings
 {
 extern float default_key_size;
-}
+extern bool show_durations;
+} // namespace Settings
 
 class UIKey
 {
@@ -121,7 +119,28 @@ class UIKey
     void set_display_text(const std::string &display_text) { m_display_text = display_text; }
 
     [[nodiscard]] bool pressed() const { return m_pressed; }
-    void set_pressed(const bool pressed) { m_pressed = pressed; }
+    void set_pressed(const bool pressed)
+    {
+        if (Settings::show_durations && pressed && m_pressed != pressed)
+            start_pressing();
+        else if (Settings::show_durations && !pressed && m_pressed != pressed)
+            end_pressing();
+        m_pressed = pressed;
+    }
+
+    [[nodiscard]] const std::chrono::steady_clock::time_point &start_press_time() const { return m_start_press_time; }
+    void start_pressing() { m_start_press_time = std::chrono::steady_clock::now(); }
+
+    [[nodiscard]] const std::chrono::steady_clock::time_point &end_press_time() const { return m_end_press_time; }
+    void end_pressing() { m_end_press_time = std::chrono::steady_clock::now(); }
+
+    [[nodiscard]] std::chrono::milliseconds press_duration() const
+    {
+        if (m_pressed)
+            return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
+                                                                         m_start_press_time);
+        return std::chrono::duration_cast<std::chrono::milliseconds>(m_end_press_time - m_start_press_time);
+    }
 
   private:
     UINT m_vk{};
@@ -134,6 +153,8 @@ class UIKey
     std::string m_pressed_texture_identifier;
     std::string m_display_text;
     bool m_pressed;
+    std::chrono::steady_clock::time_point m_start_press_time;
+    std::chrono::steady_clock::time_point m_end_press_time;
 };
 
 #endif // NEXUS_KEYBOARD_OVERLAY_UIKEY_HPP
