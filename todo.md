@@ -1,7 +1,5 @@
 # TODO / Ideas
 
-- edit textures
-- don't save on unload!
 - add keypress duration
 - multiple profiles?
 - import/export?

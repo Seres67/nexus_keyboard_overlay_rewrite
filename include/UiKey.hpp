@@ -106,14 +106,14 @@ class UIKey
     [[nodiscard]] std::string &released_texture_identifier() { return m_released_texture_identifier; }
     void set_released_texture_identifier(const std::string &released_texture_identifier)
     {
-        m_released_texture_identifier = "KEYBOARD_OVERLAY_" + released_texture_identifier;
+        m_released_texture_identifier = released_texture_identifier;
     }
 
     [[nodiscard]] std::string pressed_texture_identifier() const { return m_pressed_texture_identifier; }
     [[nodiscard]] std::string &pressed_texture_identifier() { return m_pressed_texture_identifier; }
     void set_pressed_texture_identifier(const std::string &pressed_texture_identifier)
     {
-        m_pressed_texture_identifier = "KEYBOARD_OVERLAY_" + pressed_texture_identifier;
+        m_pressed_texture_identifier = pressed_texture_identifier;
     }
 
     [[nodiscard]] std::string display_text() const { return m_display_text; }

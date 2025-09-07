@@ -24,7 +24,7 @@ void from_json(const nlohmann::json &j, UIKey &key)
     key.set_display_text(display_text);
     if (j.contains("released_texture")) {
         const std::string released_texture_id = j.at("released_texture").get<std::string>();
-        key.set_released_texture_identifier(released_texture_id);
+        key.set_released_texture_identifier("KEYBOARD_OVERLAY_" + released_texture_id);
     } else {
         const float released_red = j.at("released_red").get<float>();
         const float released_green = j.at("released_green").get<float>();
@@ -35,7 +35,7 @@ void from_json(const nlohmann::json &j, UIKey &key)
     }
     if (j.contains("pressed_texture")) {
         const std::string pressed_texture_id = j.at("pressed_texture").get<std::string>();
-        key.set_pressed_texture_identifier(pressed_texture_id);
+        key.set_pressed_texture_identifier("KEYBOARD_OVERLAY_" + pressed_texture_id);
     } else {
         const float pressed_red = j.at("pressed_red").get<float>();
         const float pressed_green = j.at("pressed_green").get<float>();

@@ -81,11 +81,6 @@ void render_window()
     ImGui::PopStyleColor();
 }
 
-float pressed_key_colors[4] = {1, 1, 1, 0.933};
-float released_key_colors[4] = {0.247, 0.302, 0.396, 0.933};
-std::filesystem::path released_path;
-std::filesystem::path pressed_path;
-char display_text[64];
 void handle_texture(std::filesystem::path &texture_path)
 {
     OPENFILENAME ofn{};
@@ -115,6 +110,11 @@ void handle_texture(std::filesystem::path &texture_path)
     }
 }
 
+float pressed_key_colors[4] = {1, 1, 1, 0.933};
+float released_key_colors[4] = {0.247, 0.302, 0.396, 0.933};
+std::filesystem::path released_path;
+std::filesystem::path pressed_path;
+char display_text[64];
 void render_options()
 {
     ImGui::SetNextWindowSize({260, 270}, ImGuiCond_Always);
@@ -151,9 +151,9 @@ void render_options()
             ImGui::PopItemFlag();
         }
         if (!released_path.empty()) {
-            const auto released_texture = api->Textures.GetOrCreateFromFile(
-                ("KEYBOARD_OVERLAY_ " + released_path.string()).c_str(), released_path.filename().string().c_str());
             const auto released_texture_identifier = ("KEYBOARD_OVERLAY_ " + released_path.string());
+            const auto released_texture =
+                api->Textures.GetOrCreateFromFile(released_texture_identifier.c_str(), released_path.string().c_str());
             if (released_texture) {
                 ImGui::SameLine();
                 ImGui::Image(released_texture->Resource, {Settings::default_key_size, Settings::default_key_size});
@@ -169,9 +169,9 @@ void render_options()
             ImGui::PopItemFlag();
         }
         if (!pressed_path.empty()) {
-            const auto pressed_texture = api->Textures.GetOrCreateFromFile(
-                ("KEYBOARD_OVERLAY_ " + pressed_path.string()).c_str(), pressed_path.filename().string().c_str());
             const auto pressed_texture_identifier = ("KEYBOARD_OVERLAY_ " + pressed_path.string());
+            const auto pressed_texture =
+                api->Textures.GetOrCreateFromFile(pressed_texture_identifier.c_str(), pressed_path.string().c_str());
             if (pressed_texture) {
                 ImGui::SameLine();
                 ImGui::Image(pressed_texture->Resource, {Settings::default_key_size, Settings::default_key_size});
@@ -329,9 +329,27 @@ void render_options()
                         Settings::save();
                     }
                 } else {
-                    if (ImGui::ImageButton(
-                            api->Textures.Get(key->second.released_texture_identifier().c_str())->Resource,
-                            {key->second.size()[0], key->second.size()[1]}, {0, 0}, {1, 1}, 0)) {
+                    if (!api->Textures.Get(key->second.released_texture_identifier().c_str())) {
+                        const auto released_texture_identifier =
+                            ("KEYBOARD_OVERLAY_" + released_path.filename().string());
+                        api->Textures.GetOrCreateFromFile(
+                            released_texture_identifier.c_str(),
+                            (textures_directory / released_path.filename()).string().c_str());
+                    } else if (ImGui::ImageButton(
+                                   api->Textures.Get(key->second.released_texture_identifier().c_str())->Resource,
+                                   {key->second.size()[0], key->second.size()[1]}, {0, 0}, {1, 1}, 0)) {
+                        handle_texture(released_path);
+                        CopyFile(released_path.string().c_str(),
+                                 (textures_directory / released_path.filename()).string().c_str(), true);
+                        const auto released_texture_identifier =
+                            ("KEYBOARD_OVERLAY_" + released_path.filename().string());
+                        api->Textures.GetOrCreateFromFile(
+                            released_texture_identifier.c_str(),
+                            (textures_directory / released_path.filename()).string().c_str());
+                        key->second.set_released_texture_identifier(released_texture_identifier);
+                        released_path.clear();
+                        Settings::json_settings["Keys"] = Settings::keys;
+                        Settings::save();
                     }
                 }
 
@@ -343,19 +361,27 @@ void render_options()
                         Settings::save();
                     }
                 } else {
-                    if (ImGui::ImageButton(
-                            api->Textures.Get(key->second.pressed_texture_identifier().c_str())->Resource,
-                            {key->second.size()[0], key->second.size()[1]}, {0, 0}, {1, 1}, 0)) {
-                        // TODO: handle editing textures
-
-                        //           handle_texture(pressed_path);
-                        //           const auto pressed_texture = api->Textures.GetOrCreateFromFile(
-                        // ("KEYBOARD_OVERLAY_ " + pressed_path.string()).c_str(),
-                        // pressed_path.filename().string().c_str());
-                        //           const auto pressed_texture_identifier = ("KEYBOARD_OVERLAY_ " +
-                        //           pressed_path.string()); if (pressed_texture) {
-                        //               key->second.set_pressed_texture_identifier()
-                        //           }
+                    if (!api->Textures.Get(key->second.pressed_texture_identifier().c_str())) {
+                        const auto pressed_texture_identifier =
+                            ("KEYBOARD_OVERLAY_" + pressed_path.filename().string());
+                        api->Textures.GetOrCreateFromFile(
+                            pressed_texture_identifier.c_str(),
+                            (textures_directory / pressed_path.filename()).string().c_str());
+                    } else if (ImGui::ImageButton(
+                                   api->Textures.Get(key->second.pressed_texture_identifier().c_str())->Resource,
+                                   {key->second.size()[0], key->second.size()[1]}, {0, 0}, {1, 1}, 0)) {
+                        handle_texture(pressed_path);
+                        CopyFile(pressed_path.string().c_str(),
+                                 (textures_directory / pressed_path.filename()).string().c_str(), true);
+                        const auto pressed_texture_identifier =
+                            ("KEYBOARD_OVERLAY_" + pressed_path.filename().string());
+                        api->Textures.GetOrCreateFromFile(
+                            pressed_texture_identifier.c_str(),
+                            (textures_directory / pressed_path.filename()).string().c_str());
+                        key->second.set_pressed_texture_identifier(pressed_texture_identifier);
+                        pressed_path.clear();
+                        Settings::json_settings["Keys"] = Settings::keys;
+                        Settings::save();
                     }
                 }
 
