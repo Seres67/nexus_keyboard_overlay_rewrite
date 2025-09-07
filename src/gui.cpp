@@ -2,6 +2,8 @@
 #include <globals.hpp>
 #include <gui.hpp>
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
 #include <settings.hpp>
 #include <utils.hpp>
 
@@ -26,18 +28,43 @@ void render_window()
         for (auto &val : Settings::keys | std::views::values) {
             ImGui::SetCursorPos({val.position()[0], val.position()[1]});
             if (val.pressed()) {
-                ImGui::PushStyleColor(ImGuiCol_Button, {val.pressed_colors()[0], val.pressed_colors()[1],
-                                                        val.pressed_colors()[2], val.pressed_colors()[3]});
-                ImGui::Button(key_to_string(val.virtual_code(), val.scan_code()).c_str(),
-                              {(val.size()[0]), (val.size()[1])});
-                ImGui::PopStyleColor();
+                if (!val.pressed_texture_identifier().empty()) {
+                    if (!api->Textures.Get(val.pressed_texture_identifier().c_str())) {
+                        api->Textures.GetOrCreateFromFile(
+                            val.pressed_texture_identifier().c_str(),
+                            (textures_directory / val.pressed_texture_identifier().substr(17)).string().c_str());
+                    } else {
+                        ImGui::ImageButton(api->Textures.Get(val.pressed_texture_identifier().c_str())->Resource,
+                                           {val.size()[0], val.size()[1]}, {0, 0}, {1, 1}, 0);
+                    }
+                } else {
+                    ImGui::PushStyleColor(ImGuiCol_Button, {val.pressed_colors()[0], val.pressed_colors()[1],
+                                                            val.pressed_colors()[2], val.pressed_colors()[3]});
+                    ImGui::Button(val.display_text().empty()
+                                      ? key_to_string(val.virtual_code(), val.scan_code()).c_str()
+                                      : val.display_text().c_str(),
+                                  {val.size()[0], val.size()[1]});
+                    ImGui::PopStyleColor();
+                }
             } else {
-                ImGui::PushStyleColor(ImGuiCol_Button,
-                                      {val.released_colors()[0], val.released_colors()[1], val.released_colors()[2],
-                                       val.released_colors()[3]});
-                ImGui::Button(key_to_string(val.virtual_code(), val.scan_code()).c_str(),
-                              {(val.size()[0]), (val.size()[1])});
-                ImGui::PopStyleColor();
+                if (!val.released_texture_identifier().empty()) {
+                    if (!api->Textures.Get(val.released_texture_identifier().c_str())) {
+                        api->Textures.GetOrCreateFromFile(
+                            val.released_texture_identifier().c_str(),
+                            (textures_directory / val.released_texture_identifier().substr(17)).string().c_str());
+                    } else {
+                        ImGui::ImageButton(api->Textures.Get(val.released_texture_identifier().c_str())->Resource,
+                                           {val.size()[0], val.size()[1]}, {0, 0}, {1, 1}, 0);
+                    }
+                } else {
+                    ImGui::PushStyleColor(ImGuiCol_Button, {val.released_colors()[0], val.released_colors()[1],
+                                                            val.released_colors()[2], val.released_colors()[3]});
+                    ImGui::Button(val.display_text().empty()
+                                      ? key_to_string(val.virtual_code(), val.scan_code()).c_str()
+                                      : val.display_text().c_str(),
+                                  {val.size()[0], val.size()[1]});
+                    ImGui::PopStyleColor();
+                }
             }
             if (Settings::edit_mode && ImGui::IsItemActive()) {
                 const float pos[2] = {val.position()[0] + ImGui::GetIO().MouseDelta.x,
@@ -54,10 +81,43 @@ void render_window()
     ImGui::PopStyleColor();
 }
 
-float add_key_colors[4] = {1, 1, 1, 0.933};
+float pressed_key_colors[4] = {1, 1, 1, 0.933};
+float released_key_colors[4] = {0.247, 0.302, 0.396, 0.933};
+std::filesystem::path released_path;
+std::filesystem::path pressed_path;
+char display_text[64];
+void handle_texture(std::filesystem::path &texture_path)
+{
+    OPENFILENAME ofn{};
+    TCHAR szFile[MAX_PATH]{};
+    TCHAR initialDir[MAX_PATH]{};
+
+    strcpy_s(initialDir, textures_directory.string().c_str());
+
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = static_cast<HWND>(nullptr);
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = "All Files (*.*)\0*.*\0"
+                      "Supported Images (*.png, *.jpg, *.jpeg, *.bmp, *.gif)\0"
+                      "*.png;*.jpg;*.jpeg;*.bmp;*.gif\0"
+                      "PNG (*.png)\0*.png\0"
+                      "JPEG (*.jpg;*.jpeg)\0*.jpg;*.jpeg\0"
+                      "Bitmap (*.bmp)\0*.bmp\0"
+                      "GIF (*.gif)\0*.gif\0";
+    ofn.nFilterIndex = 2;
+    ofn.lpstrInitialDir = initialDir;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+    if (GetOpenFileName(&ofn) == TRUE) {
+        if (!std::filesystem::exists(ofn.lpstrFile))
+            return;
+        texture_path = ofn.lpstrFile;
+    }
+}
+
 void render_options()
 {
-    ImGui::SetNextWindowSize({230, 90}, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({260, 270}, ImGuiCond_Always);
     ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f),
                             ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     if (ImGui::BeginPopupModal("Add Key##KeyboardOverlayAddKeyModal")) {
@@ -77,27 +137,87 @@ void render_options()
             ImGui::Text("Adding key %s", key_str.c_str());
             recording_keypress = false;
         }
-        // TODO: add a way to upload textures
-        ImGui::ColorEdit4("Color when key is pressed##KeyboardOverlayKeyColorPressed", add_key_colors,
+        ImGui::ColorEdit4("Color when key is released##KeyboardOverlayKeyColorPressed", released_key_colors,
                           ImGuiColorEditFlags_NoInputs);
+        ImGui::ColorEdit4("Color when key is pressed##KeyboardOverlayKeyColorPressed", pressed_key_colors,
+                          ImGuiColorEditFlags_NoInputs);
+        if (!virtual_key_to_add) {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        }
+        if (ImGui::Button("Select released key texture")) {
+            handle_texture(released_path);
+        }
+        if (!virtual_key_to_add) {
+            ImGui::PopItemFlag();
+        }
+        if (!released_path.empty()) {
+            const auto released_texture = api->Textures.GetOrCreateFromFile(
+                ("KEYBOARD_OVERLAY_ " + released_path.string()).c_str(), released_path.filename().string().c_str());
+            const auto released_texture_identifier = ("KEYBOARD_OVERLAY_ " + released_path.string());
+            if (released_texture) {
+                ImGui::SameLine();
+                ImGui::Image(released_texture->Resource, {Settings::default_key_size, Settings::default_key_size});
+            }
+        }
+        if (!virtual_key_to_add) {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        }
+        if (ImGui::Button("Select pressed key texture")) {
+            handle_texture(pressed_path);
+        }
+        if (!virtual_key_to_add) {
+            ImGui::PopItemFlag();
+        }
+        if (!pressed_path.empty()) {
+            const auto pressed_texture = api->Textures.GetOrCreateFromFile(
+                ("KEYBOARD_OVERLAY_ " + pressed_path.string()).c_str(), pressed_path.filename().string().c_str());
+            const auto pressed_texture_identifier = ("KEYBOARD_OVERLAY_ " + pressed_path.string());
+            if (pressed_texture) {
+                ImGui::SameLine();
+                ImGui::Image(pressed_texture->Resource, {Settings::default_key_size, Settings::default_key_size});
+            }
+        }
+
+        ImGui::InputText("Display text", display_text, 64);
         if (ImGui::Button("Cancel##KeyboardOverlayAddKeyModalCancel")) {
             adding_key = false;
             virtual_key_to_add = 0;
             scan_code_to_add = 0;
             recording_keypress = false;
+            memset(display_text, 0, 64);
+            released_key_colors[0] = 0.247;
+            released_key_colors[1] = 0.302;
+            released_key_colors[2] = 0.396;
+            released_key_colors[3] = 0.933;
+            released_path.clear();
+            pressed_path.clear();
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
         if (ImGui::Button("Save##KeyboardOverlayAddKeyModalSave") || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
             if (virtual_key_to_add == 0)
                 return;
-            // TODO: change this
-            const float default_released_color[4] = {0.247, 0.302, 0.396, 0.933};
-            Settings::keys[virtual_key_to_add] = UIKey(virtual_key_to_add, scan_code_to_add, default_released_color, add_key_colors);
+
+            Settings::keys[virtual_key_to_add] =
+                UIKey(virtual_key_to_add, scan_code_to_add, released_key_colors, pressed_key_colors,
+                      !released_path.empty() ? ("KEYBOARD_OVERLAY_" + released_path.filename().string()).c_str() : "",
+                      !pressed_path.empty() ? ("KEYBOARD_OVERLAY_" + pressed_path.filename().string()).c_str() : "",
+                      display_text);
             adding_key = false;
             virtual_key_to_add = 0;
             scan_code_to_add = 0;
             recording_keypress = false;
+            memset(display_text, 0, 64);
+            released_key_colors[0] = 0.247;
+            released_key_colors[1] = 0.302;
+            released_key_colors[2] = 0.396;
+            released_key_colors[3] = 0.933;
+            CopyFile(released_path.string().c_str(), (textures_directory / released_path.filename()).string().c_str(),
+                     true);
+            CopyFile(pressed_path.string().c_str(), (textures_directory / pressed_path.filename()).string().c_str(),
+                     true);
+            released_path.clear();
+            pressed_path.clear();
             Settings::json_settings["Keys"] = Settings::keys;
             Settings::save();
             ImGui::CloseCurrentPopup();
@@ -149,11 +269,12 @@ void render_options()
         ImGui::OpenPopup("Add Key##KeyboardOverlayAddKeyModal");
     }
     if (ImGui::CollapsingHeader("Keys##KeyboardOverlayKeysHeader")) {
-        if (ImGui::BeginTable("KeysTable##KeyboardOverlayKeysTable", 6,
+        if (ImGui::BeginTable("KeysTable##KeyboardOverlayKeysTable", 7,
                               ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
             ImGui::TableSetupColumn("Key", ImGuiTableColumnFlags_WidthFixed, 80.f);
             ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Position", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Display Text", ImGuiTableColumnFlags_WidthFixed, 100.f);
             ImGui::TableSetupColumn("Released Color", ImGuiTableColumnFlags_WidthFixed, 50.f);
             ImGui::TableSetupColumn("Pressed Color", ImGuiTableColumnFlags_WidthFixed, 50.f);
             ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 50.f);
@@ -192,20 +313,53 @@ void render_options()
                 ImGui::PopItemWidth();
 
                 ImGui::TableSetColumnIndex(3);
-                if (ImGui::ColorEdit4(("##ReleasedColor" + std::to_string(k.virtual_code())).c_str(),
-                                      k.released_colors(), ImGuiColorEditFlags_NoInputs)) {
+                ImGui::PushItemWidth(-1);
+                if (ImGui::InputText(("##Display Text" + std::to_string(k.virtual_code())).c_str(),
+                                     &k.display_text())) {
                     Settings::json_settings["Keys"] = Settings::keys;
                     Settings::save();
                 }
+                ImGui::PopItemWidth();
 
                 ImGui::TableSetColumnIndex(4);
-                if (ImGui::ColorEdit4(("##PressedColor" + std::to_string(k.virtual_code())).c_str(), k.pressed_colors(),
-                                      ImGuiColorEditFlags_NoInputs)) {
-                    Settings::json_settings["Keys"] = Settings::keys;
-                    Settings::save();
+                if (key->second.released_texture_identifier().empty()) {
+                    if (ImGui::ColorEdit4(("##ReleasedColor" + std::to_string(k.virtual_code())).c_str(),
+                                          k.released_colors(), ImGuiColorEditFlags_NoInputs)) {
+                        Settings::json_settings["Keys"] = Settings::keys;
+                        Settings::save();
+                    }
+                } else {
+                    if (ImGui::ImageButton(
+                            api->Textures.Get(key->second.released_texture_identifier().c_str())->Resource,
+                            {key->second.size()[0], key->second.size()[1]}, {0, 0}, {1, 1}, 0)) {
+                    }
                 }
 
                 ImGui::TableSetColumnIndex(5);
+                if (key->second.pressed_texture_identifier().empty()) {
+                    if (ImGui::ColorEdit4(("##PressedColor" + std::to_string(k.virtual_code())).c_str(),
+                                          k.pressed_colors(), ImGuiColorEditFlags_NoInputs)) {
+                        Settings::json_settings["Keys"] = Settings::keys;
+                        Settings::save();
+                    }
+                } else {
+                    if (ImGui::ImageButton(
+                            api->Textures.Get(key->second.pressed_texture_identifier().c_str())->Resource,
+                            {key->second.size()[0], key->second.size()[1]}, {0, 0}, {1, 1}, 0)) {
+                        // TODO: handle editing textures
+
+                        //           handle_texture(pressed_path);
+                        //           const auto pressed_texture = api->Textures.GetOrCreateFromFile(
+                        // ("KEYBOARD_OVERLAY_ " + pressed_path.string()).c_str(),
+                        // pressed_path.filename().string().c_str());
+                        //           const auto pressed_texture_identifier = ("KEYBOARD_OVERLAY_ " +
+                        //           pressed_path.string()); if (pressed_texture) {
+                        //               key->second.set_pressed_texture_identifier()
+                        //           }
+                    }
+                }
+
+                ImGui::TableSetColumnIndex(6);
                 if (ImGui::Button(("Delete##" + std::to_string(k.virtual_code())).c_str())) {
                     key = Settings::keys.erase(key);
                     Settings::json_settings["Keys"] = Settings::keys;

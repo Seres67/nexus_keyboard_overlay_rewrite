@@ -1,6 +1,7 @@
 #ifndef GLOBALS_HPP
 #define GLOBALS_HPP
 
+#include <filesystem>
 #include <mumble/Mumble.h>
 #include <nexus/Nexus.h>
 #include <string>
@@ -18,6 +19,8 @@ extern HWND game_handle;
 
 extern Mumble::Data *mumble_link;
 extern NexusLinkData *nexus_link;
+
+extern std::filesystem::path textures_directory;
 
 extern UINT pressed_vk;
 extern std::string pressed_key;

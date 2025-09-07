@@ -12,18 +12,6 @@ void from_json(const nlohmann::json &j, UIKey &key)
 {
     key.set_virtual_code(j.at("virtual_code").get<UINT>());
     key.set_scan_code(j.at("scan_code").get<UINT>());
-    const float released_red = j.at("released_red").get<float>();
-    const float released_green = j.at("released_green").get<float>();
-    const float released_blue = j.at("released_blue").get<float>();
-    const float released_alpha = j.at("released_alpha").get<float>();
-    const float released_colors[4] = {released_red, released_green, released_blue, released_alpha};
-    key.set_released_colors(released_colors);
-    const float pressed_red = j.at("pressed_red").get<float>();
-    const float pressed_green = j.at("pressed_green").get<float>();
-    const float pressed_blue = j.at("pressed_blue").get<float>();
-    const float pressed_alpha = j.at("pressed_alpha").get<float>();
-    const float pressed_colors[4] = {pressed_red, pressed_green, pressed_blue, pressed_alpha};
-    key.set_pressed_colors(pressed_colors);
     const float x = j.at("x").get<float>();
     const float y = j.at("y").get<float>();
     const float pos[2] = {x, y};
@@ -32,26 +20,60 @@ void from_json(const nlohmann::json &j, UIKey &key)
     const float height = j.at("height").get<float>();
     const float size[2] = {width, height};
     key.set_size(size);
+    const std::string display_text = j.at("display_text").get<std::string>();
+    key.set_display_text(display_text);
+    if (j.contains("released_texture")) {
+        const std::string released_texture_id = j.at("released_texture").get<std::string>();
+        key.set_released_texture_identifier(released_texture_id);
+    } else {
+        const float released_red = j.at("released_red").get<float>();
+        const float released_green = j.at("released_green").get<float>();
+        const float released_blue = j.at("released_blue").get<float>();
+        const float released_alpha = j.at("released_alpha").get<float>();
+        const float released_colors[4] = {released_red, released_green, released_blue, released_alpha};
+        key.set_released_colors(released_colors);
+    }
+    if (j.contains("pressed_texture")) {
+        const std::string pressed_texture_id = j.at("pressed_texture").get<std::string>();
+        key.set_pressed_texture_identifier(pressed_texture_id);
+    } else {
+        const float pressed_red = j.at("pressed_red").get<float>();
+        const float pressed_green = j.at("pressed_green").get<float>();
+        const float pressed_blue = j.at("pressed_blue").get<float>();
+        const float pressed_alpha = j.at("pressed_alpha").get<float>();
+        const float pressed_colors[4] = {pressed_red, pressed_green, pressed_blue, pressed_alpha};
+        key.set_pressed_colors(pressed_colors);
+    }
 }
 
 void to_json(nlohmann::json &j, const UIKey &key)
 {
+
     j = json{
         {"virtual_code", key.virtual_code()},
         {"scan_code", key.scan_code()},
-        {"released_red", key.released_colors()[0]},
-        {"released_green", key.released_colors()[1]},
-        {"released_blue", key.released_colors()[2]},
-        {"released_alpha", key.released_colors()[3]},
-        {"pressed_red", key.pressed_colors()[0]},
-        {"pressed_green", key.pressed_colors()[1]},
-        {"pressed_blue", key.pressed_colors()[2]},
-        {"pressed_alpha", key.pressed_colors()[3]},
         {"x", key.position()[0]},
         {"y", key.position()[1]},
         {"width", key.size()[0]},
         {"height", key.size()[1]},
+        {"display_text", key.display_text()},
     };
+    if (!key.released_texture_identifier().empty()) {
+        j += {"released_texture", key.released_texture_identifier().substr(17)};
+    } else {
+        j += {"released_red", key.released_colors()[0]};
+        j += {"released_green", key.released_colors()[1]};
+        j += {"released_blue", key.released_colors()[2]};
+        j += {"released_alpha", key.released_colors()[3]};
+    }
+    if (!key.pressed_texture_identifier().empty()) {
+        j += {"pressed_texture", key.pressed_texture_identifier().substr(17)};
+    } else {
+        j += {"pressed_red", key.pressed_colors()[0]};
+        j += {"pressed_green", key.pressed_colors()[1]};
+        j += {"pressed_blue", key.pressed_colors()[2]};
+        j += {"pressed_alpha", key.pressed_colors()[3]};
+    }
 }
 
 namespace Settings

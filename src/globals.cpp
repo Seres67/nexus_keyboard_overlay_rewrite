@@ -9,6 +9,8 @@ HWND game_handle = nullptr;
 Mumble::Data *mumble_link;
 NexusLinkData *nexus_link;
 
+std::filesystem::path textures_directory;
+
 UINT pressed_vk;
 std::string pressed_key;
 

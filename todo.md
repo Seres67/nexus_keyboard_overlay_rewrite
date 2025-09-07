@@ -10,3 +10,4 @@
 - multiple profiles?
 - import/export?
 - error when trying to add key that's already added
+- custom keys name

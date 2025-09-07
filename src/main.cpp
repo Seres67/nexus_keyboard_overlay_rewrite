@@ -64,6 +64,9 @@ void addon_load(AddonAPI *api_p)
     api->Renderer.Register(ERenderType_OptionsRender, addon_options);
     api->WndProc.Register(wnd_proc);
 
+    textures_directory = api->Paths.GetAddonDirectory("keyboard_overlay\\textures");
+    if (!std::filesystem::exists(textures_directory))
+        std::filesystem::create_directory(textures_directory);
     Settings::settings_path = api->Paths.GetAddonDirectory("keyboard_overlay\\settings.json");
     Settings::load();
 
@@ -162,7 +165,9 @@ UINT wnd_proc(HWND__ *h_wnd, const UINT u_msg, const WPARAM w_param, const LPARA
             Settings::keys[virtual_key].set_pressed(true);
         pressed_vk = virtual_key;
         pressed_key = key_to_string(virtual_key, 0);
+#ifndef NDEBUG
         api->Log(ELogLevel_DEBUG, addon_name, pressed_key.c_str());
+#endif
     }
     if (u_msg == WM_LBUTTONUP || u_msg == WM_MBUTTONUP || u_msg == WM_RBUTTONUP || u_msg == WM_XBUTTONUP) {
         const UINT virtual_key = get_mouse_button(u_msg, w_param);

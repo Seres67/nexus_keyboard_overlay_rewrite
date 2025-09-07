@@ -4,6 +4,6 @@
 #include <nexus/Nexus.h>
 #include <string>
 
-std::string key_to_string(const UINT virtual_key, const UINT scan_code);
+std::string key_to_string(UINT virtual_key, UINT scan_code);
 
 #endif // NEXUS_KEYBOARD_OVERLAY_UTILS_HPP

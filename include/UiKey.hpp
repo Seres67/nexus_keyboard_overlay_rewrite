@@ -1,7 +1,13 @@
 #ifndef NEXUS_KEYBOARD_OVERLAY_UIKEY_HPP
 #define NEXUS_KEYBOARD_OVERLAY_UIKEY_HPP
 
+#include "globals.hpp"
+
+#include <filesystem>
+#include <memory>
 #include <nexus/Nexus.h>
+#include <string>
+#include <utility>
 
 namespace Settings
 {
@@ -12,8 +18,12 @@ class UIKey
 {
   public:
     UIKey() = default;
-    UIKey(const UINT virtual_code, const UINT scan_code, const float released_colors[4], const float pressed_colors[4])
-        : m_vk(virtual_code), m_scan_code(scan_code), m_pressed(false)
+    UIKey(const UINT virtual_code, const UINT scan_code, const float released_colors[4], const float pressed_colors[4],
+          std::string released_texture_identifier, std::string pressed_texture_identifier, std::string display_text)
+        : m_vk(virtual_code), m_scan_code(scan_code),
+          m_released_texture_identifier(std::move(released_texture_identifier)),
+          m_pressed_texture_identifier(std::move(pressed_texture_identifier)), m_display_text(std::move(display_text)),
+          m_pressed(false)
     {
         m_pos[0] = 0;
         m_pos[1] = 0;
@@ -30,8 +40,12 @@ class UIKey
     }
 
     UIKey(const UINT virtual_code, const UINT scan_code, const float pos[2], const float size[2],
-          const float released_colors[4], const float pressed_colors[4])
-        : m_vk(virtual_code), m_scan_code(scan_code), m_pressed(false)
+          const float released_colors[4], const float pressed_colors[4], std::string released_texture_identifier,
+          std::string pressed_texture_identifier, std::string display_text)
+        : m_vk(virtual_code), m_scan_code(scan_code),
+          m_released_texture_identifier(std::move(released_texture_identifier)),
+          m_pressed_texture_identifier(std::move(pressed_texture_identifier)), m_display_text(std::move(display_text)),
+          m_pressed(false)
     {
         m_pos[0] = pos[0];
         m_pos[1] = pos[1];
@@ -88,6 +102,24 @@ class UIKey
         m_pressed_colors[3] = colors[3];
     }
 
+    [[nodiscard]] std::string released_texture_identifier() const { return m_released_texture_identifier; }
+    [[nodiscard]] std::string &released_texture_identifier() { return m_released_texture_identifier; }
+    void set_released_texture_identifier(const std::string &released_texture_identifier)
+    {
+        m_released_texture_identifier = "KEYBOARD_OVERLAY_" + released_texture_identifier;
+    }
+
+    [[nodiscard]] std::string pressed_texture_identifier() const { return m_pressed_texture_identifier; }
+    [[nodiscard]] std::string &pressed_texture_identifier() { return m_pressed_texture_identifier; }
+    void set_pressed_texture_identifier(const std::string &pressed_texture_identifier)
+    {
+        m_pressed_texture_identifier = "KEYBOARD_OVERLAY_" + pressed_texture_identifier;
+    }
+
+    [[nodiscard]] std::string display_text() const { return m_display_text; }
+    [[nodiscard]] std::string &display_text() { return m_display_text; }
+    void set_display_text(const std::string &display_text) { m_display_text = display_text; }
+
     [[nodiscard]] bool pressed() const { return m_pressed; }
     void set_pressed(const bool pressed) { m_pressed = pressed; }
 
@@ -98,6 +130,9 @@ class UIKey
     float m_size[2];
     float m_released_colors[4];
     float m_pressed_colors[4];
+    std::string m_released_texture_identifier;
+    std::string m_pressed_texture_identifier;
+    std::string m_display_text;
     bool m_pressed;
 };
 
