@@ -130,6 +130,7 @@ std::filesystem::path settings_path;
 std::unordered_map<unsigned int, UIKey> keys;
 float background_color[4] = {0.075, 0.086, 0.11, 0.933};
 float default_key_size = 42;
+float text_scaling = 1;
 bool disable_while_in_chat = true;
 bool disable_when_map_open = false;
 bool edit_mode = false;
@@ -160,6 +161,8 @@ void load()
         json_settings["BackgroundColor"].get_to(background_color);
     if (!json_settings["DefaultKeySize"].is_null())
         json_settings["DefaultKeySize"].get_to(default_key_size);
+    if (!json_settings["TextScaling"].is_null())
+        json_settings["TextScaling"].get_to(text_scaling);
     if (!json_settings["DisableWhileInChat"].is_null())
         json_settings["DisableWhileInChat"].get_to(disable_while_in_chat);
     if (!json_settings["DisableWhenMapOpen"].is_null())

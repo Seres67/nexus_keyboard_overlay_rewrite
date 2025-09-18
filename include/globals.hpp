@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <mumble/Mumble.h>
 #include <nexus/Nexus.h>
+#include <nlohmann/json.hpp>
 #include <string>
 
 // handle to self hmodule
@@ -29,4 +30,6 @@ extern bool adding_key;
 extern bool recording_keypress;
 extern UINT virtual_key_to_add;
 extern UINT scan_code_to_add;
+
+extern std::unordered_map<std::filesystem::path, nlohmann::json> configs;
 #endif // GLOBALS_HPP

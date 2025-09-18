@@ -79,6 +79,7 @@ void render_window()
     ImGui::PushStyleColor(ImGuiCol_WindowBg, {Settings::background_color[0], Settings::background_color[1],
                                               Settings::background_color[2], Settings::background_color[3]});
     if (ImGui::Begin("Keyboard Overlay##KeyboardOverlayMainWindow", &tmp_open, window_flags)) {
+        ImGui::SetWindowFontScale(Settings::text_scaling);
 #ifndef NDEBUG
         ImGui::Text("%u, %s", pressed_vk, pressed_key.c_str());
 #endif
@@ -124,6 +125,7 @@ float released_key_colors[4] = {0.247, 0.302, 0.396, 0.933};
 std::filesystem::path released_path;
 std::filesystem::path pressed_path;
 char display_text[64];
+int current = 0;
 void render_options()
 {
     ImGui::SetNextWindowSize({260, 270}, ImGuiCond_Always);
@@ -233,8 +235,7 @@ void render_options()
         }
         ImGui::EndPopup();
     }
-    // TODO: add profile selector here
-    //   if (ImGui::Combo("combo 4 (function)", &item_current_4, &Funcs::ItemGetter, items, IM_ARRAYSIZE(items))))
+
     if (ImGui::ColorEdit4("Background Color##KeyboardOverlayBackgroundColor", Settings::background_color,
                           ImGuiColorEditFlags_NoInputs)) {
         Settings::json_settings["BackgroundColor"] = Settings::background_color;
@@ -254,6 +255,14 @@ void render_options()
     ImGui::PushItemWidth(400);
     if (ImGui::SliderFloat("##KeyboardOverlayDefaultKeySize", &Settings::default_key_size, 1.f, 1000.f)) {
         Settings::json_settings["DefaultKeySize"] = Settings::default_key_size;
+        Settings::save();
+    }
+    ImGui::PopItemWidth();
+    ImGui::Text("Text Scaling");
+    ImGui::SameLine();
+    ImGui::PushItemWidth(400);
+    if (ImGui::SliderFloat("##KeyboardOverlayTextScaling", &Settings::text_scaling, 1.f, 10.f)) {
+        Settings::json_settings["TextScaling"] = Settings::text_scaling;
         Settings::save();
     }
     ImGui::PopItemWidth();
@@ -277,6 +286,22 @@ void render_options()
     if (ImGui::Checkbox("Lock Window##KeyboardOverlayLockWindow", &Settings::lock_window)) {
         Settings::json_settings["LockWindow"] = Settings::lock_window;
         Settings::save();
+    }
+    // TODO: add imgui combo here
+    //  TODO: add profile selector here
+    std::vector<std::string> config_names;
+    config_names.reserve(configs.size());
+    for (const auto &path : configs | std::views::keys) {
+        config_names.push_back(path.string());
+    }
+
+    std::vector<const char *> config_cstrs;
+    config_cstrs.reserve(config_names.size());
+    for (auto &s : config_names) {
+        config_cstrs.push_back(s.c_str());
+    }
+    if (ImGui::Combo("Configs", &current, config_cstrs.data(), static_cast<int>(config_cstrs.size()))) {
+        // TODO: unload current config, load new one
     }
     if (ImGui::Button("Add key##KeyboardOverlayOpenAddKeyModal")) {
         adding_key = true;

@@ -1,4 +1,5 @@
 #include <UiKey.hpp>
+#include <fstream>
 #include <globals.hpp>
 #include <gui.hpp>
 #include <imgui/imgui.h>
@@ -64,13 +65,28 @@ void addon_load(AddonAPI *api_p)
     api->Renderer.Register(ERenderType_OptionsRender, addon_options);
     api->WndProc.Register(wnd_proc);
 
-    textures_directory = api->Paths.GetAddonDirectory("keyboard_overlay\\textures");
+    const std::filesystem::path settings_directory = api->Paths.GetAddonDirectory("keyboard_overlay");
+    textures_directory = settings_directory / "textures";
     if (!std::filesystem::exists(textures_directory))
         std::filesystem::create_directory(textures_directory);
-    // TODO: change filename to default
-    Settings::settings_path = api->Paths.GetAddonDirectory("keyboard_overlay\\settings.json");
+    Settings::settings_path = settings_directory / "settings.json";
     Settings::load();
 
+    const std::filesystem::path default_config = settings_directory / "default.json";
+    if (std::filesystem::exists(default_config)) {
+        // TODO: load default config
+    }
+
+    for (auto &file : std::filesystem::directory_iterator(settings_directory)) {
+        if (file.path().filename() == "settings.json" || file.is_directory())
+            continue;
+        nlohmann::json json;
+        if (std::ifstream json_file(file.path()); json_file.is_open()) {
+            json = nlohmann::json::parse(json_file);
+            json_file.close();
+        }
+        configs[file.path()] = json;
+    }
     if (Settings::json_settings.contains("AllKeybindings") && !Settings::json_settings["AllKeybindings"].is_null()) {
         const auto old_keys = Settings::json_settings["AllKeybindings"].get<std::map<unsigned int, OldKey>>();
         for (const auto &[vk, val] : old_keys) {
@@ -141,6 +157,8 @@ void addon_unload()
     api->Renderer.Deregister(addon_render);
     api->Renderer.Deregister(addon_options);
     api->WndProc.Deregister(wnd_proc);
+    Settings::keys.clear();
+    configs.clear();
     nexus_link = nullptr;
     mumble_link = nullptr;
     api->Log(ELogLevel_INFO, addon_name, "addon unloaded!");
@@ -235,5 +253,7 @@ UINT wnd_proc(HWND__ *h_wnd, const UINT u_msg, const WPARAM w_param, const LPARA
         if (Settings::keys.contains(virtual_key))
             Settings::keys[virtual_key].set_pressed(false);
     }
+    if (u_msg == WM_ACTIVATEAPP)
+        std::ranges::for_each(Settings::keys, [](auto &pair) { pair.second.set_pressed(false); });
     return u_msg;
 }
